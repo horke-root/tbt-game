@@ -1,6 +1,28 @@
 import pyxel
 from pyparsing import Word, alphas
 import keyboard
+class CommandLine:
+    commands: dict = {}
+    def __init__(self):
+        pass
+    def Parse(self, str) -> tuple:
+        pp=str
+        try:
+            pp = Word(alphas) + " " + Word(alphas+" ")
+            pp = pp.parseString(str)
+        except:
+            pass
+        return (pp[0], pp[1])
+    def AddCommand(self, name, func):
+        self.commands.update({name: func})
+    def ExecCommand(self, name, argc):
+        try:
+            self.commands[name.upper()](argc)
+        except KeyError:
+            self.commands[name.lower()](argc)
+
+
+
 class Block:
     x1: int = 0
     y1: int = 0
@@ -23,16 +45,23 @@ b1 = Block(0,0,10,10,3)
 b2 = Block(0, 0 , 10 , 30 ,3)
 
 class Object:
-    _name = "Object"
+    name = "Object"
     col: int = 5
+    y: int
+    x: int
     def __init__(self, x, y):
         self.x = x
         self.y = y
+
     def draw(self, grid):
         grid.drawingrid(self.x, self.y, self.col)
+    def down(self, argc):
+        self.y += 1
+
+
 
 class Player(Object):
-    _name = "Player"
+    name = "Player"
     col: int = 8
     def __init__(self, x, y, hp):
         self.x = x
@@ -51,7 +80,7 @@ class World:
         player_exist = False
         pobj: Player
         for obj in self.objects:
-            if obj._name == "Player":
+            if obj.name == "Player":
                 player_exist = True
                 pobj = obj
         if player_exist == False:
@@ -63,9 +92,15 @@ class World:
     def GetPlayerHealth(self)-> int:
         pobj = self.GetPlayer()
         return pobj.hp
+    def drawAll(self, grid):
+        for obj in self.objects:
+            obj.draw(grid)
 
 
 
+class Stone(Object):
+    name = "Stone"
+    col = 13
 
 
 
@@ -88,6 +123,8 @@ class Grid:
 class Settings:
     ticks: int = 30
 
+
+
 class App:
     g: Grid
     world: World
@@ -97,8 +134,25 @@ class App:
     sy = 0
     cml: str = ""
     cursorcol : int = 5
+    cursorstats: str = ""
+    def cursor_changed(self):
+        for o in self.world.objects:
+            if o.x == self.sx:
+                if o.y == self.sy:
+                    self.cursorstats = o.name+"\n"
+                    for x,y in o.__dict__.items():
+                        self.cursorstats += f"{x}: {y}\n"
+                else:
+                    self.cursorstats = ""
+            else:
+                self.cursorstats = ""
+                    #p = Player(0,0,100)
+                    #p.
 
     def tick_func(self):
+
+        self.cursor_changed()
+
         if self.cursorcol == 3:
             self.cursorcol = 5
         else:
@@ -108,7 +162,10 @@ class App:
     def worldinit(self):
         self.world = World(100, 100)
         self.world.addObject(Player(0,0, 100))
+        self.world.addObject(Stone(4, 6))
         self.settings = Settings()
+        self.cmdl = CommandLine()
+        self.cmdl.AddCommand("down", self.world.GetPlayer().down)
         global alphaslower
         alphaslower = [char for char in alphas if char.isupper()]
         print(alphaslower)
@@ -130,16 +187,23 @@ class App:
 
         if pyxel.btnp(pyxel.KEY_RIGHT):
             self.sx += 1
+            self.cursor_changed()
         elif pyxel.btnp(pyxel.KEY_LEFT):
             self.sx -= 1
+            self.cursor_changed()
         elif pyxel.btnp(pyxel.KEY_UP):
             self.sy -= 1
+            self.cursor_changed()
         elif pyxel.btnp(pyxel.KEY_DOWN):
             self.sy += 1
+            self.cursor_changed()
         elif pyxel.btnr(pyxel.KEY_BACKSPACE):
             self.cml = self.cml[:-1]
         elif pyxel.btnr(pyxel.KEY_SPACE):
             self.cml += " "
+        elif pyxel.btnr(pyxel.KEY_RETURN):
+            self.cmdl.ExecCommand(self.cml, ())
+            self.cml = ""
         else:
             for a in alphaslower:
                 try:  # used try so that if user pressed other than the given key error will not be shown
@@ -153,8 +217,18 @@ class App:
 
     def draw(self):
         pyxel.cls(0)
-        pyxel.text(110, 0, f"x:{self.world.GetPlayerPosition()[0]} y:{self.world.GetPlayerPosition()[1]}", 3)
+        pyxel.text(110, 0, f"x:{self.sx} y:{self.sy}", 3)
         pyxel.text(110, 5, f"tick: {self.tick}",3)
+        def Ntext(x, y, text, col):
+            ntext = text.split("\n")
+            i=0
+            print(ntext)
+            for t in ntext:
+                i += 1
+                pyxel.text(x, y+(5*i), t, col)
+
+        pyxel.text(110, 15, self.cursorstats, 3)
+
         pyxel.text(5,105, self.cml, 3)
         pyxel.blt(61, 66, 0, 0, 0, 38, 16)
         #pyxel.line(0, 0, 0, 120, 3)
@@ -163,8 +237,8 @@ class App:
         #b2.drawblock()
         self.g.draw()
 
-        self.world.GetPlayer().draw(self.g)
-
+        #self.world.GetPlayer().draw(self.g)
+        self.world.drawAll(self.g)
         self.g.drawingrid(self.sx, self.sy, self.cursorcol)
 
 
