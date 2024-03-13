@@ -7,6 +7,9 @@ class Action:
         self.argc = argc
 
 class Object:
+    letter: str = "o"
+    letterColor: int = 0
+    showLetter: bool = False
     name = "Object"
     world = None
     col: int = 5
@@ -25,6 +28,8 @@ class Object:
             grid.drawingridborder(self.x, self.y, self.bordercol)
         if self.secondBorder == True:
             grid.secondborder(self.x, self.y, self.bordercol)
+        if self.showLetter == True:
+            grid.drawLetter(self.x, self.y, self.letter, self.letterColor)
     def down(self, argc):
         self.y += 1
 class Entity(Object):
@@ -58,14 +63,16 @@ class Entity(Object):
             print(q.func)
     def move_to(self, *argc):
         print(argc)
-        if argc[0].lower() == "cursor":
+        try:
+            if argc[0].lower() == "cursor":
+                self._move_to(self.world.sx, self.world.sy)
+            else:
+                rx=int(argc[0])
+                ry=int(argc[1])
+                print (f"moveto : {rx}, {ry}")
+                self._move_to(rx, ry)
+        except:
             self._move_to(self.world.sx, self.world.sy)
-        else:
-            rx=int(argc[0])
-            ry=int(argc[1])
-            print (f"moveto : {rx}, {ry}")
-            self._move_to(rx, ry)
-
             """if argc[0].lower() == "cursor":
             def moveFunc(r, d, world):
                 si = 0
@@ -87,6 +94,8 @@ class Entity(Object):
 """
 class Player(Entity):
     name = "Player"
+    showLetter = True
+    letter = "P"
     col: int = 8
     def __init__(self, x, y, hp, world):
         self.x = x
@@ -99,3 +108,8 @@ class Player(Entity):
 class Stone(Object):
     name = "Stone"
     col = 13
+
+class Tree(Object):
+    name = "Tree"
+    col = 11
+    border = True

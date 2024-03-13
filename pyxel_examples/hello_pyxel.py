@@ -37,31 +37,6 @@ class CommandLine:
                 self.world.hidden_text = "NOT FOUND"
                 self.world.queue.append(Action(self.HideHiddenText, (0,)))
 
-
-
-
-class Block:
-    x1: int = 0
-    y1: int = 0
-    x2: int = 10
-    y2: int = 10
-    clr: int = 3
-    def __init__(self, x1, y1, x2, y2, clr):
-        self.x1 = x1
-        self.x2 = x2
-        self.y2 = y2
-        self.y1 = y1
-        self.clr = clr
-    def drawblock(self):
-        pyxel.line(self.x1, self.y1, self.x2, self.y1, self.clr)
-        pyxel.line(self.x1, self.y1, self.x1, self.y2, self.clr)
-        pyxel.line(self.x1, self.y2, self.x2, self.y2, self.clr)
-        pyxel.line(self.x2, self.y2, self.x2, self.y1, self.clr)
-
-b1 = Block(0,0,10,10,3)
-b2 = Block(0, 0 , 10 , 30 ,3)
-
-
 class Grid:
     grid_size: int
     grid_count: int
@@ -78,6 +53,8 @@ class Grid:
 
     def drawingrid(self, sx, sy, clr):
         pyxel.rect(sx*self.grid_size+1,sy*self.grid_size+1,self.grid_size-1, self.grid_size-1, clr)
+    def drawLetter(self, sx, sy, letter:str, clr):
+        pyxel.text(sx*self.grid_size+4, sy*self.grid_size+3,letter, clr)
     def draw(self):
         for a in range(0, self.grid_count+1):
             pyxel.line(0,0+(self.grid_size * a), (self.grid_count * self.grid_size),0+(self.grid_size * a), self.clr)
@@ -90,6 +67,7 @@ class Settings:
 
 
 class App:
+
     ash = ">"
     g: Grid
     world: World
@@ -136,9 +114,6 @@ class App:
             #print("not have in queue")
         self.world.tick = True
         self.cursor_changed()
-
-
-
         if self.cursorcol == 3:
             self.cursorcol = 5
         else:
@@ -149,6 +124,7 @@ class App:
         self.world = World(100, 100)
         self.world.addObject(Player(0,0, 100, self.world))
         self.world.addObject(Stone(4, 6, self.world))
+        self.world.addObject(Tree(3,8, self.world))
         self.settings = Settings()
         self.cmdl = CommandLine(self.world)
         self.cmdl.AddCommand("down", self.world.GetPlayer().down)
