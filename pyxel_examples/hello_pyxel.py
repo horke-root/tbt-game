@@ -1,25 +1,42 @@
 import pyxel
-from pyparsing import Word, alphas
-import keyboard
+from pyparsing import Word, alphas, nums
+
+from Objects import *
+from World import World
+
+
 class CommandLine:
     commands: dict = {}
-    def __init__(self):
-        pass
+    world: World
+    def ShowHiddenText(self, argc):
+        self.world.show_hiddentext = True
+
+    def HideHiddenText(self, argc):
+        self.world.show_hiddentext = False
+    def __init__(self, world: World):
+        self.world = world
     def Parse(self, str) -> tuple:
-        pp=str
-        try:
-            pp = Word(alphas) + " " + Word(alphas+" ")
-            pp = pp.parseString(str)
-        except:
-            pass
-        return (pp[0], pp[1])
+        pp=str.split(" ")
+
+        """pp = Word(alphas) + " " + Word(alphas)
+        pp = pp.parseString(str)"""
+        print(pp)
+        return (pp[0], tuple(pp[1:]))
     def AddCommand(self, name, func):
         self.commands.update({name: func})
     def ExecCommand(self, name, argc):
+        print(f"{name}: {argc}")
         try:
-            self.commands[name.upper()](argc)
+            self.commands[name.upper()](*argc)
         except KeyError:
-            self.commands[name.lower()](argc)
+            try:
+                self.commands[name.lower()](*argc)
+            except KeyError:
+                self.world.queue.append(Action(self.ShowHiddenText, (0,)))
+                self.world.queue.append(Action(self.ShowHiddenText, (0,)))
+                self.world.hidden_text = "NOT FOUND"
+                self.world.queue.append(Action(self.HideHiddenText, (0,)))
+
 
 
 
@@ -44,65 +61,6 @@ class Block:
 b1 = Block(0,0,10,10,3)
 b2 = Block(0, 0 , 10 , 30 ,3)
 
-class Object:
-    name = "Object"
-    col: int = 5
-    y: int
-    x: int
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-    def draw(self, grid):
-        grid.drawingrid(self.x, self.y, self.col)
-    def down(self, argc):
-        self.y += 1
-
-
-
-class Player(Object):
-    name = "Player"
-    col: int = 8
-    def __init__(self, x, y, hp):
-        self.x = x
-        self.y = y
-        self.hp = hp
-class World:
-    objects: list = []
-    w: int
-    h: int
-    def __init__(self, width, height):
-        self.w = width
-        self.h = height
-    def addObject(self, obj: Object):
-        self.objects.append(obj)
-    def GetPlayer(self) ->  Player:
-        player_exist = False
-        pobj: Player
-        for obj in self.objects:
-            if obj.name == "Player":
-                player_exist = True
-                pobj = obj
-        if player_exist == False:
-            print("Player not in the World")
-        return pobj
-    def GetPlayerPosition(self) -> (int , int):
-        pobj = self.GetPlayer()
-        return (pobj.x, pobj.y)
-    def GetPlayerHealth(self)-> int:
-        pobj = self.GetPlayer()
-        return pobj.hp
-    def drawAll(self, grid):
-        for obj in self.objects:
-            obj.draw(grid)
-
-
-
-class Stone(Object):
-    name = "Stone"
-    col = 13
-
-
 
 class Grid:
     grid_size: int
@@ -112,6 +70,12 @@ class Grid:
         self.grid_size = grid_size
         self.grid_count = grid_count
         self.clr = clr
+    def secondborder(self, sx, sy, clr):
+        pyxel.rectb(sx * self.grid_size + 2, sy * self.grid_size + 2, self.grid_size - 3, self.grid_size - 3, clr)
+
+    def drawingridborder(self, sx, sy, clr):
+        pyxel.rectb(sx * self.grid_size + 1, sy * self.grid_size + 1, self.grid_size - 1, self.grid_size - 1, clr)
+
     def drawingrid(self, sx, sy, clr):
         pyxel.rect(sx*self.grid_size+1,sy*self.grid_size+1,self.grid_size-1, self.grid_size-1, clr)
     def draw(self):
@@ -126,6 +90,7 @@ class Settings:
 
 
 class App:
+    ash = ">"
     g: Grid
     world: World
     tick: int = 0
@@ -135,23 +100,44 @@ class App:
     cml: str = ""
     cursorcol : int = 5
     cursorstats: str = ""
+
+
+
     def cursor_changed(self):
+        self.cursorstats = ""
         for o in self.world.objects:
+            #print(f"{o.name}: {o.__dict__}")
+
             if o.x == self.sx:
                 if o.y == self.sy:
                     self.cursorstats = o.name+"\n"
-                    for x,y in o.__dict__.items():
-                        self.cursorstats += f"{x}: {y}\n"
+                    for s,t in o.__dict__.items():
+                        self.cursorstats += f"{s}: {t}\n"
                 else:
-                    self.cursorstats = ""
+                    pass
             else:
-                self.cursorstats = ""
+                pass
+                #self.cursorstats = ""
+                #self.cursorstats = ""
                     #p = Player(0,0,100)
                     #p.
-
+    def halftick_func(self):
+        if self.ash == ">":
+            self.ash = ""
+        else:
+            self.ash = ">"
     def tick_func(self):
-
+        try:
+            args = self.world.queue[0].argc
+            self.world.queue[0].func(*args)
+            self.world.queue.pop(0)
+        except:
+            pass
+            #print("not have in queue")
+        self.world.tick = True
         self.cursor_changed()
+
+
 
         if self.cursorcol == 3:
             self.cursorcol = 5
@@ -161,15 +147,18 @@ class App:
 
     def worldinit(self):
         self.world = World(100, 100)
-        self.world.addObject(Player(0,0, 100))
-        self.world.addObject(Stone(4, 6))
+        self.world.addObject(Player(0,0, 100, self.world))
+        self.world.addObject(Stone(4, 6, self.world))
         self.settings = Settings()
-        self.cmdl = CommandLine()
+        self.cmdl = CommandLine(self.world)
         self.cmdl.AddCommand("down", self.world.GetPlayer().down)
+        self.cmdl.AddCommand("moveto", self.world.GetPlayer().move_to)
         global alphaslower
         alphaslower = [char for char in alphas if char.isupper()]
+        alphaslower = alphaslower
         print(alphaslower)
         self.frame = 0
+        self.halfframe = 0
     def __init__(self):
         self.g = Grid(10, 10, 3)
         self.worldinit()
@@ -179,11 +168,15 @@ class App:
         self.frame = pyxel.frame_count
 
     def update(self):
-
+        self.world.sx = self.sx
+        self.world.sy = self.sy
         if (self.frame - pyxel.frame_count) < -(self.settings.ticks):
             self.frame = pyxel.frame_count
             self.tick_func()
             self.tick += 1
+        if (self.halfframe - pyxel.frame_count) < -int((self.settings.ticks * 0.5)):
+            self.halfframe = pyxel.frame_count
+            self.halftick_func()
 
         if pyxel.btnp(pyxel.KEY_RIGHT):
             self.sx += 1
@@ -202,14 +195,14 @@ class App:
         elif pyxel.btnr(pyxel.KEY_SPACE):
             self.cml += " "
         elif pyxel.btnr(pyxel.KEY_RETURN):
-            self.cmdl.ExecCommand(self.cml, ())
+            self.cmdl.ExecCommand(*self.cmdl.Parse(self.cml))
             self.cml = ""
         else:
-            for a in alphaslower:
+            for a in alphaslower+list(str(nums)):
                 try:  # used try so that if user pressed other than the given key error will not be shown
-                    if pyxel.btnr(eval(f"pyxel.KEY_{a}")):
-                        print('You Pressed ' + a + ' Key!')
-                        self.cml += a
+                    if pyxel.btnr(eval(f"pyxel.KEY_{str(a)}")):
+                        #print('You Pressed ' + a + ' Key!')
+                        self.cml += str(a)
                 except:
                     break
 
@@ -228,8 +221,12 @@ class App:
                 pyxel.text(x, y+(5*i), t, col)
 
         pyxel.text(110, 15, self.cursorstats, 3)
+        pyxel.text(0,105, self.ash, 3)
 
-        pyxel.text(5,105, self.cml, 3)
+        if self.world.show_hiddentext:
+            pyxel.text(5,105,self.world.hidden_text, 13)
+
+        pyxel.text(5, 105, self.cml, 3)
         pyxel.blt(61, 66, 0, 0, 0, 38, 16)
         #pyxel.line(0, 0, 0, 120, 3)
         #pyxel.line(10, 0, 10, 120, 3)
