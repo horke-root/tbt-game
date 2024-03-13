@@ -43,10 +43,11 @@ class Entity(Object):
     def left(self, argc):
         self.x -= 1
     def _move_to(self, x ,y):
-        offsetX = x - self.x
-        offsetY = y - self.y
+        offsetX = x - self.x + self.world.offsetX
+        offsetY = y - self.y + self.world.offsetY
         print(offsetX)
         print(offsetY)
+
         if offsetX < 0:
             for a in range(0, -offsetX):
                 self.world.queue.append(Action(self.left, (0,)))

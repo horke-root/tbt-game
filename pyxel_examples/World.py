@@ -4,12 +4,15 @@ class World:
     objects: list = []
     threads: list = []
 
+    offsetX = 0
+    offsetY = 0
+
     hidden_text = "NOT FOUND"
     show_hiddentext = False
 
     w: int
-    sx = 0
-    sy = 0
+    sx = 1
+    sy = 1
     h: int
     tick = False
     def __init__(self, width, height):
@@ -36,4 +39,5 @@ class World:
     def drawAll(self, grid):
         for obj in self.objects:
             obj.draw(grid)
+
 

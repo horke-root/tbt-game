@@ -3,7 +3,7 @@ from pyparsing import Word, alphas, nums
 
 from Objects import *
 from World import World
-
+from Grid import Grid
 
 class CommandLine:
     commands: dict = {}
@@ -37,29 +37,6 @@ class CommandLine:
                 self.world.hidden_text = "NOT FOUND"
                 self.world.queue.append(Action(self.HideHiddenText, (0,)))
 
-class Grid:
-    grid_size: int
-    grid_count: int
-    clr: int
-    def __init__(self, grid_size, grid_count, clr):
-        self.grid_size = grid_size
-        self.grid_count = grid_count
-        self.clr = clr
-    def secondborder(self, sx, sy, clr):
-        pyxel.rectb(sx * self.grid_size + 2, sy * self.grid_size + 2, self.grid_size - 3, self.grid_size - 3, clr)
-
-    def drawingridborder(self, sx, sy, clr):
-        pyxel.rectb(sx * self.grid_size + 1, sy * self.grid_size + 1, self.grid_size - 1, self.grid_size - 1, clr)
-
-    def drawingrid(self, sx, sy, clr):
-        pyxel.rect(sx*self.grid_size+1,sy*self.grid_size+1,self.grid_size-1, self.grid_size-1, clr)
-    def drawLetter(self, sx, sy, letter:str, clr):
-        pyxel.text(sx*self.grid_size+4, sy*self.grid_size+3,letter, clr)
-    def draw(self):
-        for a in range(0, self.grid_count+1):
-            pyxel.line(0,0+(self.grid_size * a), (self.grid_count * self.grid_size),0+(self.grid_size * a), self.clr)
-        for a in range(0, self.grid_count+1):
-            pyxel.line((self.grid_size * a),0, 0+(self.grid_size * a) ,(self.grid_count * self.grid_size), self.clr)
 
 class Settings:
     ticks: int = 30
@@ -73,8 +50,8 @@ class App:
     world: World
     tick: int = 0
     settings: Settings
-    sx = 0
-    sy = 0
+    sx = 1
+    sy = 1
     cml: str = ""
     cursorcol : int = 5
     cursorstats: str = ""
@@ -83,11 +60,25 @@ class App:
 
     def cursor_changed(self):
         self.cursorstats = ""
+
+        if self.world.sx > 10:
+            self.world.offsetX += 1
+            self.sx -= 1
+        if self.world.sx < 0:
+            self.world.offsetX -= 1
+            self.sx += 1
+        if self.world.sy > 10:
+            self.world.offsetY += 1
+            self.sy -= 1
+        if self.world.sy < 0:
+            self.world.offsetY -= 1
+            self.sy += 1
+
         for o in self.world.objects:
             #print(f"{o.name}: {o.__dict__}")
 
-            if o.x == self.sx:
-                if o.y == self.sy:
+            if o.x == self.sx+self.world.offsetX:
+                if o.y == self.sy+self.world.offsetY:
                     self.cursorstats = o.name+"\n"
                     for s,t in o.__dict__.items():
                         self.cursorstats += f"{s}: {t}\n"
@@ -136,9 +127,10 @@ class App:
         self.frame = 0
         self.halfframe = 0
     def __init__(self):
-        self.g = Grid(10, 10, 3)
+
         self.worldinit()
-        pyxel.init(160, 120, title="Hello Pyxel")
+        self.g = Grid(10, 10, self.world, 3)
+        pyxel.init(int(160*1.2), int(120*1.2), title="Hello Pyxel")
         pyxel.images[0].load(0, 0, "assets/pyxel_logo_38x16.png")
         pyxel.run(self.update, self.draw)
         self.frame = pyxel.frame_count
@@ -186,8 +178,8 @@ class App:
 
     def draw(self):
         pyxel.cls(0)
-        pyxel.text(110, 0, f"x:{self.sx} y:{self.sy}", 3)
-        pyxel.text(110, 5, f"tick: {self.tick}",3)
+        pyxel.text(115, 0, f"x:{self.sx+self.world.offsetX} y:{self.sy+self.world.offsetY}", 3)
+        pyxel.text(115, 5, f"tick: {self.tick}",3)
         def Ntext(x, y, text, col):
             ntext = text.split("\n")
             i=0
@@ -196,13 +188,13 @@ class App:
                 i += 1
                 pyxel.text(x, y+(5*i), t, col)
 
-        pyxel.text(110, 15, self.cursorstats, 3)
-        pyxel.text(0,105, self.ash, 3)
+        pyxel.text(115, 15, self.cursorstats, 3)
+        pyxel.text(0,135, self.ash, 3)
 
         if self.world.show_hiddentext:
-            pyxel.text(5,105,self.world.hidden_text, 13)
+            pyxel.text(5,135,self.world.hidden_text, 13)
 
-        pyxel.text(5, 105, self.cml, 3)
+        pyxel.text(5, 135, self.cml, 3)
         pyxel.blt(61, 66, 0, 0, 0, 38, 16)
         #pyxel.line(0, 0, 0, 120, 3)
         #pyxel.line(10, 0, 10, 120, 3)
@@ -212,7 +204,7 @@ class App:
 
         #self.world.GetPlayer().draw(self.g)
         self.world.drawAll(self.g)
-        self.g.drawingrid(self.sx, self.sy, self.cursorcol)
+        self.g.drawingrid(self.sx+self.world.offsetX, self.sy+self.world.offsetY, self.cursorcol)
 
 
 
