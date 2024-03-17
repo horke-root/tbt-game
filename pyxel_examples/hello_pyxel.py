@@ -96,13 +96,23 @@ class App:
         else:
             self.ash = ">"
     def tick_func(self):
+        print(self.world.queue)
+        for k, m in self.world.queue.items():
+            print(m)
+            try:
+                args = m[0].argc
+                m[0].func(*args)
+                m.pop(0)
+            except IndexError:
+                pass
         try:
-            args = self.world.queue[0].argc
-            self.world.queue[0].func(*args)
-            self.world.queue.pop(0)
+            for iQ in self.world.infinityQueue:
+                args = iQ.argc
+                iQ.func(*args)
         except:
             pass
             #print("not have in queue")
+
         self.world.tick = True
         self.cursor_changed()
         if self.cursorcol == 3:
@@ -116,6 +126,7 @@ class App:
         self.world.addObject(Player(0,0, 100, self.world))
         self.world.addObject(Stone(4, 6, self.world))
         self.world.addObject(Tree(3,8, self.world))
+        self.world.addObject(Zombie(2, 11, self.world))
         self.settings = Settings()
         self.cmdl = CommandLine(self.world)
         self.cmdl.AddCommand("down", self.world.GetPlayer().down)
@@ -140,7 +151,7 @@ class App:
         self.world.sy = self.sy
         if (self.frame - pyxel.frame_count) < -(self.settings.ticks):
             self.frame = pyxel.frame_count
-            self.tick_func()
+            Thread(target=self.tick_func).run()
             self.tick += 1
         if (self.halfframe - pyxel.frame_count) < -int((self.settings.ticks * 0.5)):
             self.halfframe = pyxel.frame_count

@@ -1,6 +1,7 @@
 from Objects import Object, Player, Stone
 class World:
-    queue: list = []
+    queue: dict = {0: [], 1: []}
+    infinityQueue: list = []
     objects: list = []
     threads: list = []
 
@@ -40,4 +41,12 @@ class World:
         for obj in self.objects:
             obj.draw(grid)
 
+    def DeleteAllActionByName(self, name, layer):
+        for a in enumerate(self.queue[layer]):
+            if a[1].name == name:
+                self.queue.pop(a[0])
 
+    def DeleteAllInfinityActionByName(self, name):
+        for a in enumerate(self.infinityQueue):
+            if a[1].name == name:
+                self.queue.pop(a[0])
