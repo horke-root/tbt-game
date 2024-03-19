@@ -1,5 +1,6 @@
 from threading import Thread
 from abc import abstractmethod, ABC
+from Sound import *
 class Action:
     func = None
     argc = tuple
@@ -24,6 +25,7 @@ class Object:
     @abstractmethod
     def onStart(self): #Start after spawning
         pass
+
     def __init__(self, x, y, world):
         self.x = x
         self.y = y
@@ -41,34 +43,88 @@ class Object:
     def down(self, argc):
         self.y += 1
 class Entity(Object):
+    _move_target: (int, int)
     name = "Entity"
+    sound = None
     def down(self, argc):
+        if self.sound != None:
+            self.sound.play(2)
         self.y += 1
     def up(self, argc):
+        if self.sound != None:
+            self.sound.play(2)
         self.y -= 1
     def right(self, argc):
+        if self.sound != None:
+            self.sound.play(2)
         self.x += 1
     def left(self, argc):
+        if self.sound != None:
+            self.sound.play(2)
         self.x -= 1
 
-    def _move_to(self, x ,y, layer: int = 0):
+    def _move_once(self, x, y, layer: int = 0):
         offsetX = x - self.x + self.world.offsetX
         offsetY = y - self.y + self.world.offsetY
         print(offsetX)
         print(offsetY)
-
-        if offsetX < 0:
-            for a in range(0, -offsetX):
+        if offsetX > offsetY:
+            if offsetX < 0:
                 self.world.queue[layer].append(Action(self.left, (0,), self.name))
-        if offsetX > 0:
-            for a in range(0, offsetX):
+            if offsetX > 0:
                 self.world.queue[layer].append(Action(self.right, (0,), self.name))
-        if offsetY < 0:
-            for a in range(0, -offsetY):
+            if offsetY < 0:
                 self.world.queue[layer].append(Action(self.up, (0,), self.name))
-        if offsetY > 0:
-            for a in range(0, offsetY):
+            if offsetY > 0:
                 self.world.queue[layer].append(Action(self.down, (0,), self.name))
+
+        else:
+            if offsetY < 0:
+                self.world.queue[layer].append(Action(self.up, (0,), self.name))
+            if offsetY > 0:
+                self.world.queue[layer].append(Action(self.down, (0,), self.name))
+            if offsetX < 0:
+                self.world.queue[layer].append(Action(self.left, (0,), self.name))
+            if offsetX > 0:
+                self.world.queue[layer].append(Action(self.right, (0,), self.name))
+
+        for q in self.world.queue[layer]:
+            print(q.func)
+
+    def _move_to(self, x ,y, layer: int = 0):
+        offsetX = x - self.x# + self.world.offsetX
+        offsetY = y - self.y# + self.world.offsetY
+        print(offsetX)
+        print(offsetY)
+        self._move_target = (int(x), int(y))
+        if offsetX > offsetY:
+            if offsetX < 0:
+                for a in range(0, -offsetX):
+                    self.world.queue[layer].append(Action(self.left, (0,), self.name))
+            if offsetX > 0:
+                for a in range(0, offsetX):
+                    self.world.queue[layer].append(Action(self.right, (0,), self.name))
+            if offsetY < 0:
+                for a in range(0, -offsetY):
+                    self.world.queue[layer].append(Action(self.up, (0,), self.name))
+            if offsetY > 0:
+                for a in range(0, offsetY):
+                    self.world.queue[layer].append(Action(self.down, (0,), self.name))
+
+        else:
+            if offsetY < 0:
+                for a in range(0, -offsetY):
+                    self.world.queue[layer].append(Action(self.up, (0,), self.name))
+            if offsetY > 0:
+                for a in range(0, offsetY):
+                    self.world.queue[layer].append(Action(self.down, (0,), self.name))
+            if offsetX < 0:
+                for a in range(0, -offsetX):
+                    self.world.queue[layer].append(Action(self.left, (0,), self.name))
+            if offsetX > 0:
+                for a in range(0, offsetX):
+                    self.world.queue[layer].append(Action(self.right, (0,), self.name))
+
         for q in self.world.queue[layer]:
             print(q.func)
     def move_to(self, *argc):
@@ -82,7 +138,7 @@ class Entity(Object):
                 print (f"moveto : {rx}, {ry}")
                 self._move_to(rx, ry, layer=0)
         except:
-            self._move_to(self.world.sx, self.world.sy, layer=0)
+            self._move_to(self.world.sx+self.world.offsetX, self.world.sy+self.world.offsetY, layer=0)
             """if argc[0].lower() == "cursor":
             def moveFunc(r, d, world):
                 si = 0
@@ -114,6 +170,7 @@ class Player(Entity):
         self.border = True
         self.secondBorder = True
         self.world = world
+        self.sound = StepSound(self.world, snd=2)
 
 class Stone(Object):
     name = "Stone"
@@ -134,14 +191,20 @@ class Zombie(Entity):
     showLetter = True
     def doActionUntilPlayerTouch(self):
         print("duActionUntilPlayerTouch" + str(self))
-        self.world.DeleteAllActionByName("Zombie", 1)
+        passer = False
+        if passer:
+            self.world.DeleteAllActionByName(self.name, 1)
+            passer = False
+        else:
+            passer = True
+
         if self.world.GetPlayerPosition() == (self.x, self.y):
             self.world.DeleteAllInfinityActionByName("UntilZombieTouchPlayer")
         else:
             print("Uahh..Behh...")
-            self._move_to(*self.world.GetPlayerPosition(), layer=1)
+            self._move_once(*self.world.GetPlayerPosition(), layer=1)
     def onStart(self):
         print("Zombie Has Spawned")
         #self._move_to(*self.world.GetPlayerPosition(), layer=1)
-        self.world.queue[1].append(Action(self.doActionUntilPlayerTouch, ()))
+        self.world.infinityQueue.append(Action(self.doActionUntilPlayerTouch, (), "UntilZombieTouchPlayer"))
 

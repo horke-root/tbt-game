@@ -1,6 +1,6 @@
 import pyxel
 from pyparsing import Word, alphas, nums
-
+#from Sound import *
 from Objects import *
 from World import World
 from Grid import Grid
@@ -32,10 +32,14 @@ class CommandLine:
             try:
                 self.commands[name.lower()](*argc)
             except KeyError:
-                self.world.queue.append(Action(self.ShowHiddenText, (0,)))
-                self.world.queue.append(Action(self.ShowHiddenText, (0,)))
+                try:
+                    self.world.queue[2] = []
+                except KeyError:
+                    self.world.queue.update({2: []})
+                self.world.queue[2].append(Action(self.ShowHiddenText, (0,)))
+                self.world.queue[2].append(Action(self.ShowHiddenText, (0,)))
                 self.world.hidden_text = "NOT FOUND"
-                self.world.queue.append(Action(self.HideHiddenText, (0,)))
+                self.world.queue[2].append(Action(self.HideHiddenText, (0,)))
 
 
 class Settings:
@@ -139,12 +143,32 @@ class App:
         self.halfframe = 0
     def __init__(self):
 
+        pyxel.init(int(160*1.2), int(120*1.2), title="Hello Pyxel")
         self.worldinit()
         self.g = Grid(10, 10, self.world, 3)
-        pyxel.init(int(160*1.2), int(120*1.2), title="Hello Pyxel")
         pyxel.images[0].load(0, 0, "assets/pyxel_logo_38x16.png")
+        pyxel.sounds[0].set(
+            "e2e2c2g1 g1g1c2e2 d2d2d2g2 g2g2rr" "c2c2a1e1 e1e1a1c2 b1b1b1e2 e2e2rr",
+            "t",
+            "6",
+            "vffn fnff vffs vfnn",
+            100,
+        )
+        pyxel.sounds[1].set(
+            "r a1b1c2 b1b1c2d2 g2g2g2g2 c2c2d2e2" "f2f2f2e2 f2e2d2c2 d2d2d2d2 g2g2r r ",
+            "p",
+            "6",
+            "nnff vfff vvvv vfff svff vfff vvvv svnn",
+            80,
+        )
+
+        self.sS = StepSound(self.world, 2)
+        print(self.sS.snd)
+
+        pyxel.play(0, [0, 1], loop=True)
         pyxel.run(self.update, self.draw)
         self.frame = pyxel.frame_count
+
 
     def update(self):
         self.world.sx = self.sx

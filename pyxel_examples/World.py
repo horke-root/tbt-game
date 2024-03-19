@@ -4,6 +4,7 @@ class World:
     infinityQueue: list = []
     objects: list = []
     threads: list = []
+    sounds: list = []
 
     offsetX = 0
     offsetY = 0
@@ -42,8 +43,8 @@ class World:
             obj.draw(grid)
 
     def DeleteAllActionByName(self, name, layer):
-        for a in enumerate(self.queue[layer]):
-            if a[1].name == name:
+        for a in enumerate(self.queue[layer].values()):
+            if a.name == name:
                 self.queue.pop(a[0])
 
     def DeleteAllInfinityActionByName(self, name):
